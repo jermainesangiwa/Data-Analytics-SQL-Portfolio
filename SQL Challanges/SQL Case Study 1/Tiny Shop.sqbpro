@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="C:/Users/USER/Documents/Data Analytics/Project Challanges/Data In Motion Weekly Challanges/SQL Challanges/SQL Case Study 1/Tiny Shop.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure pragmas browser query" current="2"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="766"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><current_table name="4,11:mainorder_items"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="customers" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="97"/><column index="2" value="87"/><column index="3" value="84"/><column index="4" value="163"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="order_items" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort><column index="1" mode="0"/></sort><column_widths><column index="1" value="72"/><column index="2" value="87"/><column index="3" value="72"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="orders" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="72"/><column index="2" value="97"/><column index="3" value="91"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="products" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_"><sort/><column_widths><column index="1" value="87"/><column index="2" value="111"/><column index="3" value="49"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="Qs.2.sql">SELECT
+	customers.customer_id,
+	customers.first_name || ' ' ||customers.last_name AS Customer,
+	COUNT(orders.customer_id) AS 'Number of Orders'
+
+FROM orders
+JOIN customers ON
+orders.customer_id = customers.customer_id
+
+GROUP BY
+	customers.customer_id
+ORDER BY
+	COUNT(orders.customer_id) DESC</sql><sql name="Qs.3.sql">SELECT
+	products.product_name AS Product,
+	products.price * SUM(order_items.quantity) AS Revenue
+
+FROM order_items
+JOIN products ON
+order_items.product_id = products.product_id
+
+GROUP BY
+	products.product_name
+ORDER BY
+	Product
+	</sql><sql name="Qs.4.sql">SELECT
+	orders.order_id,
+	STRFTIME('%d', orders.order_date) AS 'Order Day',
+	SUM(products.price) * SUM(order_items.quantity) AS Revenue
+
+FROM order_items
+JOIN products 
+JOIN orders ON
+order_items.product_id = products.product_id AND
+order_items.order_id = orders.order_id
+
+GROUP BY
+	orders.order_id
+ORDER BY
+	orders.order_id
+	
+</sql><sql name="Qs.5.sql">SELECT
+	customers.customer_id,
+	customers.first_name || ' ' || customers.last_name AS Customer,
+	MIN(orders.order_date) AS 'First Order Date'
+
+FROM customers
+LEFT JOIN orders ON
+customers.customer_id = orders.customer_id
+
+GROUP BY
+	customers.customer_id, Customer
+</sql><sql name="Qs.6.sql">WITH CTE AS(
+	SELECT
+		orders.order_id,
+		orders.customer_id,
+		customers.first_name || ' ' || customers.last_name AS Customers
+		
+	FROM orders
+	JOIN customers ON
+	orders.customer_id = customers.customer_id
+)
+
+SELECT
+	CTE.Customers,
+	COUNT(DISTINCT(order_items.product_id)) AS 'Number of Products'
+
+FROM order_items
+LEFT JOIN CTE ON
+order_items.order_id = CTE.order_id
+
+GROUP BY
+	CTE.Customers
+ORDER BY
+	COUNT(DISTINCT(order_items.product_id)) DESC
+LIMIT 3
+</sql><sql name="Qs.7.sql">SELECT
+	products.product_name AS 'Product Name',
+	SUM(order_items.quantity) AS Quantity
+
+FROM order_items
+JOIN products ON
+order_items.product_id = products.product_id
+
+GROUP BY
+	products.product_name
+ORDER BY
+	Quantity
+</sql><sql name="Qs.8.sql">WITH CTE AS(
+	SELECT
+		order_items.order_id,
+		SUM(products.price) * SUM(order_items.quantity) AS Order_Revenue
+	
+	FROM order_items
+	JOIN products ON
+	order_items.product_id = products.product_id
+	
+	GROUP BY order_items.order_id
+),
+CTE2 AS(
+	SELECT 
+		Order_Revenue, 
+		ROW_NUMBER() OVER (ORDER BY Order_Revenue) AS Row_Num,
+		COUNT(*) OVER () AS Total_Count
+		
+	FROM CTE 
+)
+SELECT 
+	ROUND(AVG(Order_Revenue), 2) AS Median
+	
+FROM CTE2
+
+WHERE
+	Row_Num IN ((Total_Count + 1)/2, (Total_Count + 2)/2) 
+	OR (Total_Count % 2 = 1 AND Row_Num = (Total_Count + 1)/2)
+</sql><sql name="Qs.9.sql">SELECT
+	order_items.order_id,
+	SUM(products.price) * SUM(order_items.quantity) AS Revenue,
+	CASE
+		WHEN (SUM(products.price) * SUM(order_items.quantity))&gt;300 THEN 'Expensive'
+		WHEN (SUM(products.price) * SUM(order_items.quantity))&gt;100 THEN 'Affordable'
+		ELSE 'Cheap'
+	END AS Description
+	
+FROM order_items
+JOIN products ON
+order_items.product_id = products.product_id
+
+GROUP BY order_items.order_id
+
+ORDER BY order_items.order_id
+</sql><sql name="Qs.10.sql">WITH CTE AS(
+	SELECT
+		orders.order_id,
+		customers.first_name || ' ' || customers.last_name AS Customers
+
+	FROM orders
+	JOIN customers
+	ON orders.customer_id = customers.customer_id
+
+	GROUP BY orders.order_id
+)
+SELECT
+	CTE.order_id,
+	CTE.Customers,
+	MAX(products.price) AS Maximum_Price
+
+FROM order_items
+JOIN products
+JOIN CTE
+ON order_items.product_id = products.product_id
+AND order_items.order_id = CTE.order_id
+
+GROUP BY CTE.customers
+ORDER BY MAX(products.price) DESC
+
+</sql><current_tab id="8"/></tab_sql></sqlb_project>
